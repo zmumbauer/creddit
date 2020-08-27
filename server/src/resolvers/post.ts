@@ -4,6 +4,7 @@ import { MyContext } from "../types";
 
 @Resolver()
 export class PostResolver {
+
 	// Returns all posts in database
 	@Query(() => [Post])
 	posts(@Ctx() { em }: MyContext): Promise<Post[]> {
@@ -20,6 +21,7 @@ export class PostResolver {
 	}
 
 	// Creates a new post with given title
+	// Returns the newly created post
 	@Mutation(() => Post)
 	async createPost(
 		@Arg("title", () => String) title: string,
@@ -31,6 +33,7 @@ export class PostResolver {
 	}
 
 	// Updates existing post based on id
+	// Returns the updated post if updated or null upon failure to update
 	@Mutation(() => Post, { nullable: true })
 	async updatePost(
 		@Arg("id") id: number,
@@ -46,5 +49,21 @@ export class PostResolver {
 			await em.persistAndFlush(post);
 		}
 		return post;
+	}
+
+	// Deletes the post selected by id
+	// Returns boolean representing success or failure
+	@Mutation(() => Boolean)
+	async deletePost(
+		@Arg("id") id: number,
+		@Ctx() { em }: MyContext
+	): Promise<boolean> {
+		try {
+			await em.nativeDelete(Post, { id });
+		} catch {
+			return false;
+		}
+		
+		return true;
 	}
 }
