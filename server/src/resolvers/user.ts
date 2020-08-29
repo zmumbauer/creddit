@@ -73,7 +73,7 @@ export class UserResolver {
 			return {
 				errors: [
 					{
-						field: "Username",
+						field: "username",
 						message: "Username must have at least 4 characters"
 					},
 				]
@@ -85,7 +85,7 @@ export class UserResolver {
 			return {
 				errors: [
 					{
-						field: "Password",
+						field: "password",
 						message: "Password must have at least 8 characters"
 					},
 				]
@@ -106,7 +106,7 @@ export class UserResolver {
 				return {
 					errors: [
 						{
-							field: "Username",
+							field: "username",
 							message: "Username has already been claimed"
 						},
 					]
@@ -135,7 +135,7 @@ export class UserResolver {
 			return {
 				errors: [
 					{
-						field: "Username",
+						field: "username",
 						message: "Username not found",
 					},
 				],
@@ -148,7 +148,7 @@ export class UserResolver {
 			return {
 				errors: [
 					{
-						field: 'Password',
+						field: 'password',
 						message: 'Incorrect password',
 					},
 				]
