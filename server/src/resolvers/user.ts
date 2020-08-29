@@ -102,7 +102,7 @@ export class UserResolver {
 		} catch(err) {
 
 			// Duplicate username
-			if (err.code === "23505" || err.detail.include("already exists")) {
+			if (err.detail.includes("already exists")) {
 				return {
 					errors: [
 						{
