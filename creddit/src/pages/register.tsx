@@ -25,6 +25,7 @@ const Register: React.FC<registerProps> = ({}) => {
       <Formik
         initialValues={{ username: "", password: "" }}
         onSubmit={async (values, { setErrors }) => {
+          
           // Send form data to graphql endpoint
           const res = await register(values);
 

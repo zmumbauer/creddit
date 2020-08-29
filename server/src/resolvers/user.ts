@@ -11,6 +11,7 @@ import {
 import { MyContext } from "../types";
 import { User } from "../entities/User";
 import argon2 from "argon2";
+import { EntityManager } from '@mikro-orm/postgresql';
 
 // Creates fields for username and password for registration and login
 @InputType()
@@ -67,7 +68,7 @@ export class UserResolver {
 		@Arg("options") options: UsernamePasswordInput,
 		@Ctx() { em, req }: MyContext
 	): Promise<UserResponse> {
-		console.log(req.session);
+
 		// Check that username has at least 4 characters
 		if (options.username.length < 4) {
 			return {
@@ -92,15 +93,26 @@ export class UserResolver {
 			}
 		}
 
+		// Create a hashed password using the user supplied password
 		const hashedPassword = await argon2.hash(options.password);
-		const user = em.create(User, {
-			username: options.username,
-			password: hashedPassword,
-		});
-		try {
-			await em.persistAndFlush(user);	
-		} catch(err) {
 
+		// Insert the user into the database
+		let user;
+		try {
+			const result = await (em as EntityManager).createQueryBuilder(User).getKnexQuery().insert(
+				{
+					username: options.username,
+					password: hashedPassword,
+					created_at: new Date(),
+					updated_at: new Date(),
+				}
+			).returning('*');
+			user = result[0];
+
+			// Rename columns from knex
+			user.createdAt = user.created_at;
+			user.updatedAt = user.updated_at;
+		} catch(err) {
 			// Duplicate username
 			if (err.detail.includes("already exists")) {
 				return {
