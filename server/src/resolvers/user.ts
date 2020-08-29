@@ -6,6 +6,7 @@ import {
 	Field,
 	Ctx,
 	ObjectType,
+	Query
 } from "type-graphql";
 import { MyContext } from "../types";
 import { User } from "../entities/User";
@@ -44,14 +45,29 @@ class UserResponse {
 @Resolver()
 export class UserResolver {
 
+	// Returns a user if stored in session (logged in)
+	// Returns null if no user is authenticated
+	@Query(() => User, { nullable: true })
+	async me (
+		@Ctx() { em, req }: MyContext
+	) {
+		if (!req.session.userId) {
+			return null;
+		}
+
+		const user = await em.findOne(User, { id: req.session.userId});
+		return user;
+	}
+
+
 	// Creates a new user with provided username and password through options object
 	// Returns the created user
 	@Mutation(() => UserResponse)
 	async register(
 		@Arg("options") options: UsernamePasswordInput,
-		@Ctx() { em }: MyContext
+		@Ctx() { em, req }: MyContext
 	): Promise<UserResponse> {
-
+		console.log(req.session);
 		// Check that username has at least 4 characters
 		if (options.username.length < 4) {
 			return {
@@ -98,6 +114,9 @@ export class UserResolver {
 			}
 		}
 		
+		// stores user in session
+		req.session.userID = user.id;
+
 		return { user };
 	}
 
@@ -105,7 +124,7 @@ export class UserResolver {
 	@Mutation(() => UserResponse)
 	async login(
 		@Arg("options") options: UsernamePasswordInput,
-		@Ctx() { em }: MyContext
+		@Ctx() { em, req }: MyContext
 	): Promise<UserResponse> {
 
 		// Checks for username in database
@@ -135,6 +154,9 @@ export class UserResolver {
 				]
 			}
 		}
+
+
+		req.session.userId = user.id;
 
 		// Upon successful login, returns the User object
 		return {
