@@ -1,27 +1,16 @@
-import {
-  Resolver,
-  Mutation,
-  Arg,
-  InputType,
-  Field,
-  Ctx,
-  ObjectType,
-  Query,
-} from "type-graphql";
-import { MyContext } from "../types";
-import { User } from "../entities/User";
-import argon2 from "argon2";
 import { EntityManager } from "@mikro-orm/postgresql";
+import argon2 from "argon2";
+import {
+  Arg,
+  Ctx, Field, Mutation,
+  ObjectType,
+  Query, Resolver
+} from "type-graphql";
 import { COOKIE_NAME } from "../constants";
-
-// Creates fields for username and password for registration and login
-@InputType()
-class UsernamePasswordInput {
-  @Field()
-  username: string;
-  @Field()
-  password: string;
-}
+import { User } from "../entities/User";
+import { MyContext } from "../types";
+import { UsernamePasswordInput } from "./UsernamePasswordInput";
+import { validateUserRegistration } from "../utils/validateUserRegistration";
 
 // Object to return an error message specific to a user-input field
 @ObjectType()
@@ -47,13 +36,6 @@ class UserResponse {
 @Resolver()
 export class UserResolver {
 
-  @Mutation(() => Boolean)
-  async forgotPassword(
-    @Arg('email') email:string
-    @Ctx() { em }: MyContext) {
-      // const user = await em.findOne(User, { email })
-      return true
-  }
 
   // Returns a user if stored in session (logged in)
   // Returns null if no user is authenticated
@@ -74,29 +56,13 @@ export class UserResolver {
     @Arg("options") options: UsernamePasswordInput,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
-    // Check that username has at least 4 characters
-    if (options.username.length < 4) {
-      return {
-        errors: [
-          {
-            field: "username",
-            message: "Username must have at least 4 characters",
-          },
-        ],
-      };
+    
+    // Get result from user registration validations
+    const errors = validateUserRegistration(options);
+    if (errors) {
+      return { errors };
     }
 
-    // Check that password has at least 8 characters
-    if (options.password.length < 8) {
-      return {
-        errors: [
-          {
-            field: "password",
-            message: "Password must have at least 8 characters",
-          },
-        ],
-      };
-    }
 
     // Create a hashed password using the user supplied password
     const hashedPassword = await argon2.hash(options.password);
@@ -109,6 +75,7 @@ export class UserResolver {
         .getKnexQuery()
         .insert({
           username: options.username,
+          email: options.email,
           password: hashedPassword,
           created_at: new Date(),
           updated_at: new Date(),
@@ -142,18 +109,19 @@ export class UserResolver {
   // Handles user login based on provided username and password
   @Mutation(() => UserResponse)
   async login(
-    @Arg("options") options: UsernamePasswordInput,
+    @Arg("usernameOrEmail") usernameOrEmail:string,
+    @Arg("password") password:string,
     @Ctx() { em, req }: MyContext
   ): Promise<UserResponse> {
     // Checks for username in database
-    const user = await em.findOne(User, { username: options.username });
+    const user = await em.findOne(User, usernameOrEmail.includes("@") ? { email: usernameOrEmail } : { username: usernameOrEmail});
 
     // If a user with the provided username doesn't exist, returns a FieldError
     if (!user) {
       return {
         errors: [
           {
-            field: "username",
+            field: "usernameOrEmail",
             message: "Username not found",
           },
         ],
@@ -163,7 +131,7 @@ export class UserResolver {
     // Validates stored password with supplied password
     const validatePassword = await argon2.verify(
       user.password,
-      options.password
+      password
     );
     if (!validatePassword) {
       return {

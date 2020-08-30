@@ -16,7 +16,7 @@ const Login: React.FC<{}> = ({}) => {
   return (
     <Wrapper size="small">
       <Formik
-        initialValues={{ username: "", password: "" }}
+        initialValues={{ usernameOrEmail: "", password: "" }}
         onSubmit={async (values, { setErrors }) => {
           // Send form data to graphql endpoint
           const res = await login(values);
@@ -35,9 +35,9 @@ const Login: React.FC<{}> = ({}) => {
         {({ isSubmitting }) => (
           <Form>
             <InputField
-              name="username"
-              placeholder="username"
-              label="Username"
+              name="usernameOrEmail"
+              placeholder="username or email"
+              label="Username or Email"
             />
 
             <Box mt={10}>

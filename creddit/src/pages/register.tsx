@@ -21,11 +21,11 @@ const Register: React.FC<registerProps> = ({}) => {
   return (
     <Wrapper size="small">
       <Formik
-        initialValues={{ username: "", password: "" }}
+        initialValues={{ email: "", username: "", password: "" }}
         onSubmit={async (values, { setErrors }) => {
           
           // Send form data to graphql endpoint
-          const res = await register(values);
+          const res = await register({options: values});
 
           // Check if graphql returns form field errors
           // If there is an error, display in form field
@@ -45,6 +45,14 @@ const Register: React.FC<registerProps> = ({}) => {
               placeholder="username"
               label="Username"
             />
+
+            <Box mt={10}>
+            <InputField
+              name="email"
+              placeholder="email"
+              label="Email"
+            />
+            </Box>
 
             <Box mt={10}>
               <InputField
