@@ -46,6 +46,15 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+
+  @Mutation(() => Boolean)
+  async forgotPassword(
+    @Arg('email') email:string
+    @Ctx() { em }: MyContext) {
+      // const user = await em.findOne(User, { email })
+      return true
+  }
+
   // Returns a user if stored in session (logged in)
   // Returns null if no user is authenticated
   @Query(() => User, { nullable: true })

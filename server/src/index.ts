@@ -16,6 +16,7 @@ import connectRedis from "connect-redis";
 import cors from 'cors';
 
 const main = async () => {
+
 	// Creates the database
 	const orm = await MikroORM.init(microConfig);
 
