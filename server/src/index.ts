@@ -1,6 +1,6 @@
 import "reflect-metadata";
 import { MikroORM } from "@mikro-orm/core";
-import { __prod__ } from "./constants";
+import { __prod__, COOKIE_NAME } from "./constants";
 // import { Post } from "./entities/Post";
 import microConfig from "./mikro-orm.config";
 import express from "express";
@@ -37,7 +37,7 @@ const main = async () => {
 	// TODO: Change secret and add to env
 	app.use(
 		session({
-			name: "rid",
+			name: COOKIE_NAME,
 			store: new RedisStore({
 				client: redisClient,
 				disableTouch: true,

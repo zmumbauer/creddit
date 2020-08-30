@@ -12,6 +12,7 @@ import { MyContext } from "../types";
 import { User } from "../entities/User";
 import argon2 from "argon2";
 import { EntityManager } from '@mikro-orm/postgresql';
+import { COOKIE_NAME } from "../constants";
 
 // Creates fields for username and password for registration and login
 @InputType()
@@ -174,5 +175,28 @@ export class UserResolver {
 		return {
 			user,
 		};
+	}
+
+	// Handles unauthentication of user
+	// Returns true upon success; false on failure
+	@Mutation(() => Boolean)
+	logout(
+		@Ctx() { req, res }: MyContext
+	) {
+		return new Promise(resolve => req.session.destroy(err => {
+
+			// If there is an error, log to console
+			// Return false
+			if (err) {
+				console.log(err);
+				resolve(false);
+				return;
+			}
+
+			// If no errors, remove the user authentication cookie from the session
+			// Return true
+			res.clearCookie(COOKIE_NAME);
+			resolve(true);
+		})) 
 	}
 }
