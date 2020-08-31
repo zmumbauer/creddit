@@ -1,16 +1,18 @@
 import { EntityManager } from "@mikro-orm/postgresql";
 import argon2 from "argon2";
+import { sendEmail } from "../utils/sendEmail";
 import {
   Arg,
   Ctx, Field, Mutation,
   ObjectType,
   Query, Resolver
 } from "type-graphql";
-import { COOKIE_NAME } from "../constants";
+import { v4 } from 'uuid';
+import { COOKIE_NAME, FORGET_PASSWORD_PREFIX } from "../constants";
 import { User } from "../entities/User";
 import { MyContext } from "../types";
-import { UsernamePasswordInput } from "./UsernamePasswordInput";
 import { validateUserRegistration } from "../utils/validateUserRegistration";
+import { UsernamePasswordInput } from "./UsernamePasswordInput";
 
 // Object to return an error message specific to a user-input field
 @ObjectType()
@@ -36,6 +38,27 @@ class UserResponse {
 @Resolver()
 export class UserResolver {
 
+  // Sends an email to the user
+  @Mutation(() => Boolean)
+  async forgotPassword(
+    @Arg('email') email: string,
+    @Ctx() { em, redis }: MyContext
+    ) {
+
+      // Get user by provided email
+      const user = await em.findOne(User, { email });
+      
+      // If not in the database; do nothing and return true
+      if (!user) {
+        return true;
+      }
+
+      const token = v4();
+      redis.set(FORGET_PASSWORD_PREFIX + token, user.id, 'ex', 1000 * 60 * 60 * 24);
+      
+      await sendEmail(email, `<a href="localhost:3000/change_password/${token}">reset password</a>`);
+      return true;
+  }
 
   // Returns a user if stored in session (logged in)
   // Returns null if no user is authenticated
