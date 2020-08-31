@@ -9,6 +9,7 @@ import { toErrorMap } from '../../utils/toErrorMap';
 import { useRouter } from 'next/router';
 import { withUrqlClient } from 'next-urql';
 import { createUrqlClient } from '../../utils/createUrqlClient';
+import Link from 'next/link';
 
 const ChangePassword: NextPage<{token: string}> = ({token}) => {
     const router = useRouter();
@@ -49,7 +50,13 @@ const ChangePassword: NextPage<{token: string}> = ({token}) => {
                   label="New Password"
                   type="password"
                 />
-                {tokenError ? <Box color="red">{tokenError}</Box> : null}
+                {tokenError ?
+                <Box>
+                    <Box color="red">{tokenError}</Box>
+                    <Link href="/forgot-password">Forgot password?</Link>
+                </Box>
+                 :
+                null}
               <Button
                 type="submit"
                 variantColor="blue"
