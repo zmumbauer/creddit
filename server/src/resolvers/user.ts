@@ -1,6 +1,5 @@
 import { EntityManager } from "@mikro-orm/postgresql";
 import argon2 from "argon2";
-import { sendEmail } from "../utils/sendEmail";
 import {
   Arg,
   Ctx, Field, Mutation,
@@ -11,6 +10,7 @@ import { v4 } from 'uuid';
 import { COOKIE_NAME, FORGET_PASSWORD_PREFIX } from "../constants";
 import { User } from "../entities/User";
 import { MyContext } from "../types";
+import { sendEmail } from "../utils/sendEmail";
 import { validateUserRegistration } from "../utils/validateUserRegistration";
 import { UsernamePasswordInput } from "./UsernamePasswordInput";
 
@@ -37,6 +37,69 @@ class UserResponse {
 
 @Resolver()
 export class UserResolver {
+
+  // Changes a user's password
+  @Mutation(() => UserResponse)
+  async changePassword(
+    @Arg('token') token: string,
+    @Arg('newPassword') newPassword: string,
+    @Ctx() { em, redis }: MyContext
+  ): Promise<UserResponse> {
+
+    // Check that new password has at least 8 characters
+    if (newPassword.length < 8) {
+      return {
+        errors: [
+          {
+            field: "newPassword",
+            message: "Password must have at least 8 characters",
+          },
+        ]};
+    }
+
+    // Redis key
+    const key = FORGET_PASSWORD_PREFIX + token;
+
+    // Get user id from redis using token
+    const userId = await redis.get(key);
+    
+    // If cannot find user from token
+    if (!userId) {
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "Token has expired. Request a new token."
+          }
+        ]
+      }
+    }
+    const user = await em.findOne(User, { id: parseInt(userId) });
+
+    // If cannot find user by token
+    if (!user) {
+      return {
+        errors: [
+          {
+            field: "token",
+            message: "User no longer exists"
+          }
+        ]
+      }
+    }
+
+    // Hash the new password and save to user
+    user.password = await argon2.hash(newPassword);
+
+    // Push to database
+    await em.persistAndFlush(user);
+
+    // Remove token entry from redis
+    await redis.del(key);
+    
+    // Return the user
+    return { user };
+  }
 
   // Sends an email to the user
   @Mutation(() => Boolean)
