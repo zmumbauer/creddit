@@ -1,23 +1,48 @@
-import { Arg, Mutation, Query, Resolver, InputType, Ctx, UseMiddleware, Field } from "type-graphql";
-import { Post } from "../entities/Post";
 import { MyContext } from "src/types";
+import {
+  Arg,
+  Ctx,
+  Field,
+  InputType,
+  Mutation,
+  Query,
+  Resolver,
+  UseMiddleware,
+  Int,
+} from "type-graphql";
+import { getConnection } from "typeorm";
+import { Post } from "../entities/Post";
 import { isAuth } from "../middleware/isAuth";
 
 @InputType()
 class PostInput {
   @Field()
-  title: string
+  title: string;
   @Field()
-  text: string
+  text: string;
 }
 
 @Resolver()
 export class PostResolver {
-  
   // Returns all posts in database
   @Query(() => [Post])
-  posts(): Promise<Post[]> {
-    return Post.find();
+  posts(
+    @Arg("limit", () => Int) limit: number,
+    @Arg("cursor", () => String, { nullable: true }) cursor: string | null
+  ): Promise<Post[]> {
+    const calcLimit = Math.min(limit, 50);
+    const query = getConnection()
+      .getRepository(Post)
+      .createQueryBuilder("post")
+      // .where("")
+      .orderBy('"createdAt"', "DESC")
+      .take(calcLimit);
+    if (cursor) {
+      query.where('"createdAt" < :cursor', {
+        cursor: new Date(parseInt(cursor)),
+      });
+    }
+    return query.getMany();
   }
 
   // Returns a single post based on ID param
@@ -33,7 +58,7 @@ export class PostResolver {
   async createPost(
     @Arg("input") input: PostInput,
     @Ctx() { req }: MyContext
-    ): Promise<Post> {
+  ): Promise<Post> {
     return Post.create({ ...input, authorId: req.session.userId }).save();
   }
 
