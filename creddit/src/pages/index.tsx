@@ -12,25 +12,41 @@ const Index = () => {
       limit: 10,
     },
   });
+
+  if (!fetching && !data) {
+    return <div>Query failed.</div>;
+  }
+
   return (
     <Layout variant="small">
       <Flex align="center">
         <Heading>Creddit</Heading>
-      <NextLink href="/create-post">
-        <Button variantColor="blue" ml="auto"><Link>create post</Link></Button>
-      </NextLink>
+        <NextLink href="/create-post">
+          <Button variantColor="blue" ml="auto">
+            <Link>create post</Link>
+          </Button>
+        </NextLink>
       </Flex>
-      <br/>
-      {fetching && !data ? <div>"Loading..."</div> : (
+      <br />
+      {fetching && !data ? (
+        <div>"Loading..."</div>
+      ) : (
         <Stack spacing={8}>
-          {data.posts.map((post) => (
+          {data!.posts.map((post) => (
             <Box key={post.id} p={10} shadow="md">
-              <Heading fontSize='xl'>{post.title}</Heading>
+              <Heading fontSize="xl">{post.title}</Heading>
               <Text mt={4}>{post.text}</Text>
             </Box>
           ))}
         </Stack>
       )}
+      {data ? (
+        <Flex>
+          <Button isLoading={fetching} m="auto" my={8}>
+            Load more posts
+          </Button>
+        </Flex>
+      ) : null}
     </Layout>
   );
 };
