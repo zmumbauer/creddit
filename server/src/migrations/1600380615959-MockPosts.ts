@@ -328,7 +328,7 @@ Duis aliquam convallis nunc. Proin at turpis a pede posuere nonummy. Integer non
         `)
     }
 
-    public async down(queryRunner: QueryRunner): Promise<void> {
+    public async down(_queryRunner: QueryRunner): Promise<void> {
     }
 
 }

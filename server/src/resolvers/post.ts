@@ -8,7 +8,8 @@ import {
   Query,
   Resolver,
   UseMiddleware,
-  Int, ObjectType
+  Int,
+  ObjectType,, FieldResolver
 } from "type-graphql";
 import { getConnection } from "typeorm";
 import { Post } from "../entities/Post";
@@ -25,13 +26,14 @@ class PostInput {
 @ObjectType()
 class PaginatedPosts {
   @Field(() => [Post])
-  posts: Post[]
+  posts: Post[];
   @Field()
-  hasMore: boolean
+  hasMore: boolean;
 }
 
 @Resolver()
 export class PostResolver {
+
   // Returns all posts in database
   @Query(() => PaginatedPosts)
   async posts(
@@ -41,21 +43,54 @@ export class PostResolver {
     // Takes either user defined limit or 50 by default
     const calcLimit = Math.min(limit, 50);
     const calcLimitPlusOne = calcLimit + 1;
-    const query = getConnection()
-      .getRepository(Post)
-      .createQueryBuilder("post")
-      .orderBy('"createdAt"', "DESC")
-      .take(calcLimitPlusOne);
+
+    const replacements: any[] = [calcLimitPlusOne];
 
     if (cursor) {
-      query.where('"createdAt" < :cursor', {
-        cursor: new Date(parseInt(cursor)),
-      });
+      replacements.push(new Date(parseInt(cursor)));
     }
 
-    const posts = await query.getMany();
+    
 
-    return { posts: posts.slice(0, calcLimit), hasMore: posts.length === calcLimitPlusOne };
+    const posts = await getConnection().query(
+      `
+      select p.*,
+      json_build_object(
+        'id', u.id,
+        'username', u.username,
+        'email', u.email,
+        'createdAt', u."createdAt",
+        'updatedAt', u."updatedAt"
+        ) author
+      from post p
+      inner join public.user u on u.id = p."authorId"
+      ${cursor ? 'where p."createdAt" < $2' : ""}
+      order by p."createdAt" DESC
+      limit $1
+    `,
+      replacements
+    );
+
+      console.log(posts);
+
+    // const query = getConnection()
+    //   .getRepository(Post)
+    //   .createQueryBuilder("post")
+    //   .orderBy('post."createdAt"', "DESC")
+    //   .take(calcLimitPlusOne);
+
+    // if (cursor) {
+    //   query.where('post."createdAt" < :cursor', {
+    //     cursor: new Date(parseInt(cursor)),
+    //   });
+    // }
+
+    // const posts = await query.getMany();
+
+    return {
+      posts: posts.slice(0, calcLimit),
+      hasMore: posts.length === calcLimitPlusOne,
+    };
   }
 
   // Returns a single post based on ID param

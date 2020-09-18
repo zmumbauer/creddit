@@ -3,10 +3,12 @@ import {
   Arg,
   Ctx,
   Field,
+  FieldResolver,
   Mutation,
   ObjectType,
   Query,
   Resolver,
+  Root,
 } from "type-graphql";
 import { getConnection } from "typeorm";
 import { v4 } from "uuid";
@@ -38,8 +40,19 @@ class UserResponse {
   user?: User;
 }
 
-@Resolver()
+@Resolver(User)
 export class UserResolver {
+
+  @FieldResolver(() =>  String)
+  email(@Root() user: User, @Ctx() {req}: MyContext) {
+    // email belongs to current authenticated user, so show email
+    if (req.session.userId === user.id) {
+      return user.email;
+    }
+    // if the current user is not associated with this record, return empty string
+    return "";
+  }
+  
   // Changes a user's password
   @Mutation(() => UserResponse)
   async changePassword(
