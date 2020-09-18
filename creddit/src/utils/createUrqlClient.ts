@@ -20,7 +20,7 @@ export const errorExchange: Exchange = ({ forward }) => (ops$) => {
     tap(({ error }) => {
       if (error) {
         if (error.message.includes("Not authenticated.")) {
-          Router.replace('/login');
+          Router.replace("/login");
         }
       }
     })
@@ -37,19 +37,31 @@ export const cursorPagination = (): Resolver => {
       return undefined;
     }
 
-    const inCache = cache.resolveFieldByKey(entityKey, `${fieldName}(${stringifyVariables(fieldArgs)})`);
+    const inCache = cache.resolve(cache.resolveFieldByKey(
+      entityKey,
+      `${fieldName}(${stringifyVariables(fieldArgs)})`
+    ) as string, 'posts');
 
     info.partial = !inCache;
-    const results:string[]  = [];
+    let hasMore = true;
+    const results: string[] = [];
     fieldInfos.forEach((fi) => {
-      const data = cache.resolveFieldByKey(entityKey, fi.fieldKey) as string;
+      const key = cache.resolveFieldByKey(entityKey, fi.fieldKey) as string;
+      const data = cache.resolve(key, "posts") as string[];
+      const _hasMore = cache.resolve(key, "hasMore");
+      if (!_hasMore) {
+        hasMore = _hasMore as boolean;
+      }
       results.push(...data);
     });
 
-    return results;
-    
-  }
-} 
+    return {
+      __typename: "PaginatedPosts",
+      hasMore: true,
+      posts: results,
+    };
+  };
+};
 
 export const createUrqlClient = (ssrExchange: any) => ({
   url: "http://localhost:4000/graphql",
@@ -59,10 +71,13 @@ export const createUrqlClient = (ssrExchange: any) => ({
   exchanges: [
     dedupExchange,
     cacheExchange({
+      keys: {
+        PaginatedPosts: () => null,
+      },
       resolvers: {
         Query: {
           posts: cursorPagination(),
-        }
+        },
       },
       updates: {
         Mutation: {

@@ -31,6 +31,7 @@ const main = async () => {
 	
 	await connection.runMigrations();
 
+	// await Post.delete({})
 	// Creates middleware
 	const app = express();
 
