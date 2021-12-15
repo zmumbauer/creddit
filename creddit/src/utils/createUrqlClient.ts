@@ -12,6 +12,7 @@ import { betterUpdateQuery } from "./betterUpdateQuery";
 import { pipe, tap } from "wonka";
 import { Exchange } from "urql";
 import Router from "next/router";
+import { fieldInfoOfKey } from "@urql/exchange-graphcache/dist/types/store";
 
 // Handles when GraphQL responses contain an error
 export const errorExchange: Exchange = ({ forward }) => (ops$) => {
@@ -37,10 +38,13 @@ export const cursorPagination = (): Resolver => {
       return undefined;
     }
 
-    const inCache = cache.resolve(cache.resolveFieldByKey(
-      entityKey,
-      `${fieldName}(${stringifyVariables(fieldArgs)})`
-    ) as string, 'posts');
+    const inCache = cache.resolve(
+      cache.resolveFieldByKey(
+        entityKey,
+        `${fieldName}(${stringifyVariables(fieldArgs)})`
+      ) as string,
+      "posts"
+    );
 
     info.partial = !inCache;
     let hasMore = true;
@@ -81,6 +85,16 @@ export const createUrqlClient = (ssrExchange: any) => ({
       },
       updates: {
         Mutation: {
+          createPost: (_result, args, cache, info) => {
+            const allFields = cache.inspectFields("Query");
+            const fieldInfos = allFields.filter(
+              (info) => info.fieldName === 'posts'
+            );
+            fieldInfos.forEach((fi) => {
+              cache.invalidate('Query', 'posts', fi.arguments || {})
+            })
+          },
+          
           login: (_result, args, cache, info) => {
             betterUpdateQuery<LoginMutation, MeQuery>(
               cache,

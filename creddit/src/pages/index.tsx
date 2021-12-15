@@ -4,11 +4,24 @@ import { usePostsQuery } from "../generated/graphql";
 import { createUrqlClient } from "../utils/createUrqlClient";
 import { Layout } from "../components/Layout";
 import NextLink from "next/link";
-import { Link, Stack, Box, Heading, Text, Flex, Button } from "@chakra-ui/core";
+import {
+  Link,
+  Stack,
+  Box,
+  Heading,
+  Text,
+  Flex,
+  Button,
+  IconButton,
+} from "@chakra-ui/core";
 import { useState } from "react";
+import { UpvoteSection } from "../components/UpvoteSection";
 
 const Index = () => {
-  const [variables, setVariables] = useState({ limit: 10, cursor: null as null | string });
+  const [variables, setVariables] = useState({
+    limit: 10,
+    cursor: null as null | string,
+  });
 
   const [{ data, fetching }] = usePostsQuery({
     variables,
@@ -34,21 +47,30 @@ const Index = () => {
       ) : (
         <Stack spacing={8}>
           {data!.posts.posts.map((post) => (
-            <Box key={post.id} p={10} shadow="md">
-              <Heading fontSize="xl">{post.title}</Heading>
-              <Text mt={4}>{post.text}</Text>
-            </Box>
+            <Flex key={post.id} p={10} shadow="md">
+              <UpvoteSection post={post} />
+              <Box>
+                <Heading fontSize="xl">{post.title}</Heading>{" "}
+                {post.author.username}
+                <Text mt={4}>{post.text}</Text>
+              </Box>
+            </Flex>
           ))}
         </Stack>
       )}
-      {(data && data.posts.hasMore) ? (
+      {data && data.posts.hasMore ? (
         <Flex>
-          <Button onClick={() => {
-            setVariables({
-              limit: variables.limit,
-              cursor: data.posts.posts[data.posts.posts.length - 1].createdAt
-            })
-          }} isLoading={fetching} m="auto" my={8}>
+          <Button
+            onClick={() => {
+              setVariables({
+                limit: variables.limit,
+                cursor: data.posts.posts[data.posts.posts.length - 1].createdAt,
+              });
+            }}
+            isLoading={fetching}
+            m="auto"
+            my={8}
+          >
             Load more posts
           </Button>
         </Flex>

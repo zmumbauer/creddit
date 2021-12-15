@@ -1,15 +1,16 @@
-import { MyContext } from "src/types";
+import { Upvote } from "../entities/Upvote";
+import { MyContext } from "../types";
 import {
   Arg,
   Ctx,
   Field,
   InputType,
+  Int,
   Mutation,
+  ObjectType,
   Query,
   Resolver,
   UseMiddleware,
-  Int,
-  ObjectType,, FieldResolver
 } from "type-graphql";
 import { getConnection } from "typeorm";
 import { Post } from "../entities/Post";
@@ -33,6 +34,34 @@ class PaginatedPosts {
 
 @Resolver()
 export class PostResolver {
+  // Handles upvotes
+  @Mutation(() => Boolean)
+  // Checks for user authentication
+  @UseMiddleware(isAuth)
+  async vote(
+    @Arg("postId", () => Int) postId: number,
+    @Arg("value", () => Int) value: number,
+    @Ctx() { req }: MyContext
+  ) {
+    // Check is upvote or downvote
+    const isUpvote = value !== -1;
+    const realValue = isUpvote ? 1 : -1;
+    const { userId } = req.session;
+
+    getConnection().query(
+      `
+      START TRANSACTION;
+      INSERT INTO upvote ("userId", "postId", "value")
+      values(${userId}, ${postId}, ${realValue});
+      update post
+      set points = points + ${realValue}
+      where id = ${postId};
+      COMMIT;
+    `
+    );
+
+    return true;
+  }
 
   // Returns all posts in database
   @Query(() => PaginatedPosts)
@@ -49,8 +78,6 @@ export class PostResolver {
     if (cursor) {
       replacements.push(new Date(parseInt(cursor)));
     }
-
-    
 
     const posts = await getConnection().query(
       `
@@ -70,22 +97,6 @@ export class PostResolver {
     `,
       replacements
     );
-
-      console.log(posts);
-
-    // const query = getConnection()
-    //   .getRepository(Post)
-    //   .createQueryBuilder("post")
-    //   .orderBy('post."createdAt"', "DESC")
-    //   .take(calcLimitPlusOne);
-
-    // if (cursor) {
-    //   query.where('post."createdAt" < :cursor', {
-    //     cursor: new Date(parseInt(cursor)),
-    //   });
-    // }
-
-    // const posts = await query.getMany();
 
     return {
       posts: posts.slice(0, calcLimit),

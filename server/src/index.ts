@@ -15,6 +15,7 @@ import { createConnection } from 'typeorm';
 import { Post } from "./entities/Post";
 import { User } from "./entities/User";
 import path from 'path';
+import { Upvote } from "./entities/Upvote";
 
 const main = async () => {
 
@@ -25,13 +26,12 @@ const main = async () => {
 		password: 'postgres',
 		logging: true,
 		synchronize: true,
-		entities: [Post, User],
+		entities: [Post, User, Upvote],
 		migrations: [path.join(__dirname, './migrations/*')],
 	});
 	
 	await connection.runMigrations();
 
-	// await Post.delete({})
 	// Creates middleware
 	const app = express();
 

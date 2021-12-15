@@ -155,6 +155,7 @@ export class UserResolver {
   // Returns null if no user is authenticated
   @Query(() => User, { nullable: true })
   me(@Ctx() { req }: MyContext) {
+    console.log(req.session);
     if (!req.session.userId) {
       return null;
     }
@@ -255,8 +256,9 @@ export class UserResolver {
         ],
       };
     }
-
+    console.log(req.session);
     req.session.userId = user.id;
+    console.log(req.session);
 
     // Upon successful login, returns the User object
     return {
